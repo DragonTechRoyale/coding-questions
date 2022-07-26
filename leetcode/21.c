@@ -160,11 +160,7 @@ int main()
     list2_second->next = list2_third;
     list2_third->val = 4;
     list2_third->next = NULL;
-    /*
-    list1_first = (struct ListNode *)malloc(sizeof(struct ListNode *));
-    list2_first = (struct ListNode *)malloc(sizeof(struct ListNode *));
-    list2_first->val = 0;
-*/
+
     merged  = mergeTwoLists(list1_first, list2_first);
 
     printf("List 1 length: %d \n", listLength(list1_first));
