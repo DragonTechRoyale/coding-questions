@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <strings.h>
+#include "../include/array_funcs.h"
 
 int allNumsSame(int* nums, int numsSize)
 {
@@ -48,24 +49,6 @@ int removeDuplicates(int* nums, int numsSize){
     }
     
     return j;
-}
-
-void printArr(int * nums, int numsSize)
-{
-    int i=0;
-    printf("[ ");
-    for (i=0; i<numsSize; i++)
-    {
-        if (i+1==numsSize)
-        {
-            printf("%d ",nums[i]);
-        }
-        else 
-        {
-            printf("%d, ",nums[i]);
-        }
-    }
-    puts("]");
 }
 
 
