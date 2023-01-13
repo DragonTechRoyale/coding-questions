@@ -1,5 +1,7 @@
-import pdb, random
+import pdb, random, sys
+from math import floor
 
+sys.setrecursionlimit(0xfffffff)
 
 __TRUE_SUDOKU = (9, 9)
 
@@ -61,6 +63,35 @@ def get_boxes(board):
     return boxes
 
 
+# Takes an index of the box and returns a list of vectors of that box
+def get_box_vectors(box_idx: int) -> list:
+    rank_idx = box_idx // 3 
+    stack_idx = round((box_idx/3 % 1) * 3)
+
+    start_row_idx = rank_idx * 3
+    start_column_idx = stack_idx * 3
+
+    start_vec = (start_row_idx, start_column_idx)
+    vectors = [start_vec]*9
+
+    for i in range(9):
+        vec = vectors[i]
+        row_idx, column_idx = vec
+
+        if i % 2 == 0:
+            column_idx += 1
+        elif i % 3 == 0:
+            column_idx += 2
+        
+        row_idx += floor(i/3)
+    
+        new_vec = (row_idx, column_idx)
+        vectors[i] = new_vec
+        
+    return vectors
+
+
+
 def isValidSudoku_vector(board): # returns a vector of the faulty one, if not found then returns (9, 9)
     """
     :type board: List[List[str]]
@@ -92,17 +123,11 @@ def isValidSudoku_vector(board): # returns a vector of the faulty one, if not fo
     for box_idx in range(9):
         bx = boxes[box_idx]
 
-        rank_idx = box_idx // 3 
-        stack_idx = round((box_idx/3 % 1) * 3)
-
         for box_index in range(9):
             item = boxes[box_index]
-            
-            row_idx = # TODO calculate indexes here
-            column_idx = 
 
             if item != "." and bx.count(item) > 1:
-                return False
+                return get_box_vectors(box_idx=box_idx)[box_index]
 
     return __TRUE_SUDOKU
 
@@ -167,8 +192,16 @@ def shuffle_rows_opts(rows_opts):
 
 
 def print_board(board):
+    print('-'*45)
     for row in board:
         print(row)
+
+
+def print_changed_vec(board, vec):
+    if vec != (9,9):
+        board = dup_board(board)
+        board[vec[0]][vec[1]] = f"*{board[vec[0]][vec[1]]}*"
+    print_board(board)
 
 
 def get_by_vector(row_idx: int, column_idx: int, board: list):
@@ -189,79 +222,6 @@ def get_by_vector(row_idx: int, column_idx: int, board: list):
     return row, column, box
 
 
-def apply_options(board: list, options: dict) -> list:
-    new_board = dup_board(board=board)
-
-    keys = list(options.keys())
-    random.shuffle(keys)
-
-    for key in keys: 
-        row_idx, column_idx = key
-        opts = options[(row_idx, column_idx)] 
-        random.shuffle(opts)
-
-        row, column, box = get_by_vector(row_idx=row_idx, column_idx=column_idx, board=new_board)
-
-        did_assign = False
-        while not did_assign:
-            for i in opts:
-                if not i in row and not i in column and not i in box:
-                    new_item = i
-                    did_assign = True
-                    break
-            if not did_assign:
-                # then change random value in (randomally) wither the box, column or row, so that the new board stays valid
-                tmp_board = dup_board(new_board)
-                while True:
-                    to_change = random.choice(['row', 'column', 'box'])
-                    idx_to_change = random.randrange(0, 9)
-                    did_assign_new = False
-                    if to_change == 'row':
-                        for i in range(1, 10):
-                            i = str(i)
-                            new_row, new_column, new_box = get_by_vector(row_idx=row_idx, column_idx=idx_to_change, board=new_board)
-                            new_key = (row_idx, idx_to_change)
-                            if not i in row and not i in new_column and not i in new_box and new_key in keys:
-                                tmp_board[row_idx][idx_to_change] = i
-                                did_assign_new = True
-                                if not isValidSudoku(tmp_board):
-                                    raise Exception(f"Invalid assignment at {isValidSudoku_vector(board=board)}")
-                                break
-                    elif to_change == 'column':
-                        for i in range(1, 10):
-                            i = str(i)
-                            new_row, new_column, new_box = get_by_vector(row_idx=idx_to_change, column_idx=column_idx, board=new_board)
-                            new_key = (idx_to_change, column_idx)
-                            if not i in new_row and not i in column and not i in new_box and new_key in keys:
-                                tmp_board[idx_to_change][column_idx] = i
-                                did_assign_new = True
-                                if not isValidSudoku(tmp_board):
-                                    raise Exception(f"Invalid assignment at {isValidSudoku_vector(board=board)}")
-                                break
-                    #elif to_change == 'box':
-                    print('============')
-                    print_board(tmp_board)
-                    if did_assign_new:
-                        if isValidSudoku(tmp_board):
-                            break
-                        else:
-                            raise Exception(f"Invalid assignment at {isValidSudoku_vector(board=board)}")
-                new_board = tmp_board
-
-                
-        
-        if not did_assign:
-            return new_board
-            #raise Exception("Didn't do assignment")
-
-        new_board[row_idx][column_idx] = new_item 
-        if not isValidSudoku(new_board):
-            pass
-            raise Exception("Invalid assignment")
-
-    return new_board
-
-
 def get_stacks(board: list) -> list:
     new_board = dup_board(board=board)
     boxes = get_boxes(board=new_board)
@@ -276,33 +236,27 @@ def get_stacks(board: list) -> list:
     return stacks
 
 
-'''
 def solveSudoku(board):
-    """
-    :type board: List[List[str]]
-    :rtype: None Do not return anything, modify board in-place instead.
-    """
-    needed_items = 0
-    for row in board:
-        needed_items += row.count(".")
+    return solveSudoku_func(board=board,changed_vecs=[])
 
-    while True:
-        optional_items = create_rand_list(needed_items=needed_items)
-        new_board = apply_items(optional_items=optional_items, board=board)
-        print('----------')
-        print_board(new_board)
-        if isValidSudoku(new_board):
-            return new_board
-'''
-def solveSudoku(board):
+
+def solveSudoku_func(board, changed_vecs,i=1):
     """
     :type board: List[List[str]]
     :rtype: None Do not return anything, modify board in-place instead.
     """
+
+    print(changed_vecs)
+    if changed_vecs:
+        print_changed_vec(board=board,vec=changed_vecs[-1])
+    else:
+        print_board(board)
+
+    if not '.' in str(board):
+        return True
+
     columns = get_columns(board=board)
     stacks = get_stacks(board=board)
-
-    options = {} # hash table of options for items, key is indexes and value is options {(row_idx, column_idx) : ["1", "3", ...], ...}
 
     for row_idx in range(9):
         row = board[row_idx]
@@ -320,20 +274,26 @@ def solveSudoku(board):
             key = (row_idx, column_idx)
             opts = []
 
-            for i in range(1, 9+1):
-                i = str(i)
-                if not i in row and not i in column and not i in box:
-                    opts.append(i)
+            board[row_idx][column_idx] = str(i)
+            if isValidSudoku(board):
+                changed_vecs.append((row_idx, column_idx))
+                return solveSudoku_func(board=board, changed_vecs=changed_vecs, i=1)
             
-            options[key] = opts
-    
-    while True:
-        new_board = apply_options(board=board, options=options)
-        print_board(new_board)
-        print("----------------")
-        if isValidSudoku(new_board) and not '.' in str(new_board):
-            return new_board
-            break
+            i += 1
+
+            board[key[0]][key[1]] = '.'
+            '''
+            if changed_vecs:
+                vec_last = changed_vecs.pop()
+                board[vec_last[0]][vec_last[1]] = '.'
+            
+            if changed_vecs:
+                vec_before = changed_vecs.pop()
+                board[vec_before[0]][vec_before[1]] = '.'
+                '''
+            return solveSudoku_func(board=board, changed_vecs=changed_vecs, i=i)
+
+
 
 board = [["5","3",".",".","7",".",".",".","."],
          ["6",".",".","1","9","5",".",".","."],
@@ -345,6 +305,6 @@ board = [["5","3",".",".","7",".",".",".","."],
          [".",".",".","4","1","9",".",".","5"],
          [".",".",".",".","8",".",".","7","9"]]
 
-solveSudoku(board)
+print(solveSudoku(board))
 
 print_board(board=board)
